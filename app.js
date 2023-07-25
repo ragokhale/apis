@@ -1,4 +1,7 @@
+const express = require('express');
 const puppeteer = require('puppeteer');
+
+const app = express();
 
 async function scrapeIPOData() {
   const url = 'https://www.bseindia.com/markets/PublicIssues/IPOIssues_new.aspx?id=1&Type=p';
@@ -41,34 +44,16 @@ async function scrapeIPOData() {
   }
 }
 
-//// Call the function and handle the output
-//scrapeIPOData().then((ipoData) => {
-//  if (ipoData) {
-//    console.log('Security Name\tStart Date\tEnd Date\tOffer Price\tFace Value\tType of Issue\tIssue Status');
-//    ipoData.forEach((item) => {
-//      console.log(
-//        `${item.securityName}\t${item.startDate}\t${item.endDate}\t${item.offerPrice}\t${item.faceValue}\t${item.typeOfIssue}\t${item.issueStatus}`
-//      );
-//    });
-//  }
-//});
-
-async function sendEmailWithTable(tableData) {
-  const tableString = generateTableString(tableData);
-}
-
-function generateTableString(data) {
-  let tableString = 'Security Name\tStart Date\tEnd Date\tOffer Price\tFace Value\tType of Issue\tIssue Status\n';
-  data.forEach((item) => {
-    tableString += `${item.securityName}\t${item.startDate}\t${item.endDate}\t${item.offerPrice}\t${item.faceValue}\t${item.typeOfIssue}\t${item.issueStatus}\n`;
-  });
-  return tableString;
-}
-
-(async () => {
+app.get('/scrapedData', async (req, res) => {
   const scrapedData = await scrapeIPOData();
   if (scrapedData) {
-    console.log('Scraped data:', scrapedData);
-    sendEmailWithTable(scrapedData);
+    res.json(scrapedData);
+  } else {
+    res.status(500).json({ error: 'Failed to fetch data' });
   }
-})();
+});
+
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
+});
