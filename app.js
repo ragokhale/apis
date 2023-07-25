@@ -61,15 +61,13 @@ async function scrapeIPOData() {
       const rowData = [];
       for (const row of rows) {
         const cells = row.querySelectorAll('td');
-        if (cells.length >= 7) {
+        if (cells.length >= 5) {
           rowData.push({
-            securityName: cells[0].innerText.trim(),
-            startDate: cells[1].innerText.trim(),
-            endDate: cells[2].innerText.trim(),
-            offerPrice: cells[3].innerText.trim(),
-            faceValue: cells[4].innerText.trim(),
-            typeOfIssue: cells[5].innerText.trim(),
-            issueStatus: cells[6].innerText.trim(),
+            companyName: cells[0].innerText.trim(),
+            draftRHP: cells[1].querySelector('a') ? cells[1].querySelector('a').href : '-',
+            RHP: cells[2].querySelector('a') ? cells[2].querySelector('a').href : '-',
+            prospectus: cells[3].querySelector('a') ? cells[2].querySelector('a').href : '-',
+            advert: cells[4].querySelector('a') ? cells[4].querySelector('a').href : '-',
           });
         }
       }
@@ -84,6 +82,8 @@ async function scrapeIPOData() {
     return null;
   }
 }
+
+app.get("/", (req, res) => res.type('html').send(html));
 
 app.get('/publicIssue', async (req, res) => {
   const publicIssue = await scrapePublicIssueData();
@@ -108,3 +108,16 @@ const port = 3000;
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
+const html = `
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>BSE APIs</title>
+  </head>
+  <body>
+	<h3><a href="./publicIssue">BSE Public Issues API</a></h1>
+	<h3><a href="./ipo">BSE IPO API</a></h1>
+  </body>
+</html>
+`
