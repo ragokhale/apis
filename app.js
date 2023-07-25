@@ -1,61 +1,74 @@
-const express = require("express");
-const app = express();
-const port = process.env.PORT || 3001;
+const puppeteer = require('puppeteer');
 
-app.get("/", (req, res) => res.type('html').send(html));
+async function scrapeIPOData() {
+  const url = 'https://www.bseindia.com/markets/PublicIssues/IPOIssues_new.aspx?id=1&Type=p';
 
-const server = app.listen(port, () => console.log(`Example app listening on port ${port}!`));
+  try {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.goto(url);
 
-server.keepAliveTimeout = 120 * 1000;
-server.headersTimeout = 120 * 1000;
+    // Wait for the table to be rendered
+    await page.waitForSelector('#ctl00_ContentPlaceHolder1_tblID');
 
-const html = `
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Hello from Render!</title>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
-    <script>
-      setTimeout(() => {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          disableForReducedMotion: true
-        });
-      }, 500);
-    </script>
-    <style>
-      @import url("https://p.typekit.net/p.css?s=1&k=vnd5zic&ht=tk&f=39475.39476.39477.39478.39479.39480.39481.39482&a=18673890&app=typekit&e=css");
-      @font-face {
-        font-family: "neo-sans";
-        src: url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/l?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff2"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/d?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("woff"), url("https://use.typekit.net/af/00ac0a/00000000000000003b9b2033/27/a?primer=7cdcb44be4a7db8877ffa5c0007b8dd865b3bbc383831fe2ea177f62257a9191&fvd=n7&v=3") format("opentype");
-        font-style: normal;
-        font-weight: 700;
+    // Extract data from the table
+    const data = await page.evaluate(() => {
+      const rows = document.querySelectorAll('#ctl00_ContentPlaceHolder1_tblID tr');
+      const rowData = [];
+      for (const row of rows) {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 7) {
+          rowData.push({
+            securityName: cells[0].innerText.trim(),
+            startDate: cells[1].innerText.trim(),
+            endDate: cells[2].innerText.trim(),
+            offerPrice: cells[3].innerText.trim(),
+            faceValue: cells[4].innerText.trim(),
+            typeOfIssue: cells[5].innerText.trim(),
+            issueStatus: cells[6].innerText.trim(),
+          });
+        }
       }
-      html {
-        font-family: neo-sans;
-        font-weight: 700;
-        font-size: calc(62rem / 16);
-      }
-      body {
-        background: white;
-      }
-      section {
-        border-radius: 1em;
-        padding: 1em;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-right: -50%;
-        transform: translate(-50%, -50%);
-      }
-    </style>
-  </head>
-  <body>
-    <section>
-      Hello from Render!
-    </section>
-  </body>
-</html>
-`
+      return rowData;
+    });
+
+    await browser.close();
+
+    return data;
+  } catch (error) {
+    console.error('Error occurred:', error);
+    return null;
+  }
+}
+
+//// Call the function and handle the output
+//scrapeIPOData().then((ipoData) => {
+//  if (ipoData) {
+//    console.log('Security Name\tStart Date\tEnd Date\tOffer Price\tFace Value\tType of Issue\tIssue Status');
+//    ipoData.forEach((item) => {
+//      console.log(
+//        `${item.securityName}\t${item.startDate}\t${item.endDate}\t${item.offerPrice}\t${item.faceValue}\t${item.typeOfIssue}\t${item.issueStatus}`
+//      );
+//    });
+//  }
+//});
+
+async function sendEmailWithTable(tableData) {
+  const tableString = generateTableString(tableData);
+}
+
+function generateTableString(data) {
+  let tableString = 'Security Name\tStart Date\tEnd Date\tOffer Price\tFace Value\tType of Issue\tIssue Status\n';
+  data.forEach((item) => {
+    tableString += `${item.securityName}\t${item.startDate}\t${item.endDate}\t${item.offerPrice}\t${item.faceValue}\t${item.typeOfIssue}\t${item.issueStatus}\n`;
+  });
+  return tableString;
+}
+
+(async () => {
+  const scrapedData = await scrapeIPOData();
+  if (scrapedData) {
+    console.log('Scraped data:', scrapedData);
+    sendEmailWithTable(scrapedData);
+  }
+})();
